@@ -35,6 +35,10 @@ class BasicTokenizer():
     self.vocab = {i:bytes([i]) for i in range(256)}
 
   def train(self, text, vocab_size, verbose=False):
+    """Train bpe tokenizer on string `text`, trained tokenizer
+    will have vocabulary size of `vocab_size`. If verbose,
+    print merges and final stats
+    """
     num_iters = vocab_size - 256
     tokens = list(text.encode('utf-8'))
     old_len = len(tokens)
@@ -55,9 +59,23 @@ class BasicTokenizer():
       print(f'Compression ratio: {old_len/new_len:.3}X')
 
   def encode(self, text):
-    pass
+    """Given string encode it to tokens"""
+    tokens = list(text.encode('utf-8'))
+    while True:
+      # want to find tokens pair which is in merges and has lowest rank
+      stats = get_stats(tokens)
+      try: # we found at least one mergeable pair and took one with the lowest rank
+        idx, pair = min(((self.merges[p], p) for p in stats if p in self.merges))
+        tokens = merge(tokens, pair, idx)
+      except ValueError:
+      # we are breaking, as we didn't find any pair in tokens which is also in merges
+        break
+    return tokens
+
   def decode(self, ids):
-    pass
+    """Given encoded ids, return string"""
+    text = b''.join(self.vocab[i] for i in ids)
+    return text.decode('utf-8', errors='replace')
 
 if __name__ == "__main__":
   text = open("./tests/taylorswift.txt", 'r', encoding='utf-8').read()
