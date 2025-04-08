@@ -5,6 +5,9 @@ https://github.com/karpathy/minbpe/blob/master/exercise.md#step-1
 
 # Helper functions
 
+import json
+
+
 def get_stats(ids):
   """Given ids (tokens) computes
   token consecutive pairs frequencies
@@ -76,6 +79,10 @@ class BasicTokenizer():
     """Given encoded ids, return string"""
     text = b''.join(self.vocab[i] for i in ids)
     return text.decode('utf-8', errors='replace')
+
+  def save(self, filename):
+    """Saves the state of tokenizer into file"""
+    # TODO
 
 if __name__ == "__main__":
   text = open("./tests/taylorswift.txt", 'r', encoding='utf-8').read()
