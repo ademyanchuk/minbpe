@@ -82,3 +82,4 @@ if __name__ == "__main__":
   vocab_size = 512
   tokenizer = BasicTokenizer()
   tokenizer.train(text, vocab_size, verbose=True)
+  print(tokenizer.decode(tokenizer.encode(text)) == text)
