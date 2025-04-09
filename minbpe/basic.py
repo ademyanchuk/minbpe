@@ -6,6 +6,7 @@ https://github.com/karpathy/minbpe/blob/master/exercise.md#step-1
 # Helper functions
 
 import json
+from pathlib import Path
 
 
 def get_stats(ids):
@@ -80,13 +81,8 @@ class BasicTokenizer():
     text = b''.join(self.vocab[i] for i in ids)
     return text.decode('utf-8', errors='replace')
 
-  def save(self, filename):
+  def save(self, filepath):
     """Saves the state of tokenizer into file"""
-    # TODO
-
-if __name__ == "__main__":
-  text = open("./tests/taylorswift.txt", 'r', encoding='utf-8').read()
-  vocab_size = 512
-  tokenizer = BasicTokenizer()
-  tokenizer.train(text, vocab_size, verbose=True)
-  print(tokenizer.decode(tokenizer.encode(text)) == text)
+    model_path = Path(filepath).with_suffix('.model')
+    # save only pairs, they are ordered in modern python
+    model_path.write_text(json.dumps(list(self.merges)))
