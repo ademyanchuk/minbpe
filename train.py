@@ -14,3 +14,7 @@ models_path = Path(__file__).resolve().parent / 'models'
 models_path.mkdir(exist_ok=True)
 # save tokenizer
 tokenizer.save(models_path / 'basic')
+# load and ensure encoding and decoding works
+tokenizer2 = BasicTokenizer()
+tokenizer2.load(models_path / 'basic')
+print(tokenizer2.decode(tokenizer.encode(text)) == text)
