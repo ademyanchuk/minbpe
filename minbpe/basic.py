@@ -48,7 +48,7 @@ class BasicTokenizer():
     old_len = len(tokens)
     for i in range(num_iters):
       stats = get_stats(tokens)
-      pair = max(stats, key=stats.get)
+      pair = max(stats, key=stats.get) # type: ignore
       idx = 256 + i
       tokens = merge(tokens, pair, idx)
       self.merges[pair] = idx
@@ -86,3 +86,15 @@ class BasicTokenizer():
     model_path = Path(filepath).with_suffix('.model')
     # save only pairs, they are ordered in modern python
     model_path.write_text(json.dumps(list(self.merges)))
+
+  def load(self, filepath):
+    """Loads the state of tokenizer from filepath.
+    Intended to use after training and saving,
+    before attempting to encode/decode
+    """
+    model_path = Path(filepath).with_suffix('.model')
+    pairs = json.loads(model_path.read_text())
+    # recreate merges and vocab
+    for idx, pair in enumerate(pairs, start=256):
+      self.merges[tuple(pair)] = idx
+      self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
