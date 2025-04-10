@@ -4,15 +4,19 @@ https://github.com/karpathy/minbpe/blob/master/exercise.md#step-1
 """
 
 import json
+import regex as re
 from pathlib import Path
 
 
+GPT4_SPLIT_PATTERN = r"""'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s+"""
+
 # Helper functions
-def get_stats(ids):
+def get_stats(ids, stats=None):
   """Given ids (tokens) computes
   token consecutive pairs frequencies
   """
-  stats = {}
+  if stats is None:
+    stats = {}
   for pair in zip(ids, ids[1:]):
     stats[pair] = stats.get(pair, 0) + 1
   return stats
@@ -118,3 +122,38 @@ class BasicTokenizer(Tokenizer):
     """Given encoded ids, return string"""
     text = b''.join(self.vocab[i] for i in ids)
     return text.decode('utf-8', errors='replace')
+
+# Regex Tokenizer using GPT4 split pattern
+# does not allow token merges across character categories' borders
+class RegexTokenizer(BasicTokenizer):
+  def __init__(self):
+    super().__init__()
+  
+  def train(self, text, vocab_size, verbose=False):
+    pattern = re.compile(GPT4_SPLIT_PATTERN) 
+    groups = pattern.findall(text)
+    tokens = [list(g.encode('utf-8')) for g in groups]
+    num_iters = vocab_size - 256
+    old_len = sum(len(t) for t in tokens)
+
+    for i in range(num_iters):
+      stats = {}
+      for tg in tokens:
+        stats = get_stats(tg, stats) # accumulate stats
+      pair = max(stats, key=stats.get) # type: ignore
+      idx = 256 + i
+      tokens = [merge(t, pair, idx) for t in tokens]
+      self.merges[pair] = idx
+      self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
+      if verbose:
+        # visualize during training, print bytes
+        print(self.vocab[pair[0]], '+', self.vocab[pair[1]], '->', self.vocab[idx])
+
+    new_len = sum(len(t) for t in tokens)
+    if verbose:
+      print(f'Length of tokens before: {old_len}')
+      print(f'Length of tokens after: {new_len}')
+      print(f'Compression ratio: {old_len/new_len:.3}X')
+
+# TODO: AK does split text into regex matched chunks before encoding
+# TODO: same way as in the training, I don't. Explore if both ways are equivalent
