@@ -3,12 +3,11 @@ Implements basic BPE tokenizer as in
 https://github.com/karpathy/minbpe/blob/master/exercise.md#step-1
 """
 
-# Helper functions
-
 import json
 from pathlib import Path
 
 
+# Helper functions
 def get_stats(ids):
   """Given ids (tokens) computes
   token consecutive pairs frequencies
@@ -33,10 +32,49 @@ def merge(ids, pair, idx):
       i += 1
   return newids
 
-class BasicTokenizer():
-  def __init__(self):
+# Base tokenizer class, defines interface and common functionality
+class Tokenizer():
+  def __init__(self) -> None:
     self.merges = {}
     self.vocab = {i:bytes([i]) for i in range(256)}
+
+  def train(self, text, vocab_size, verbose=False):
+    """Define in concrete implementation"""
+    raise NotImplementedError
+
+  def encode(self, text):
+    """Define in concrete implementation"""
+    raise NotImplementedError
+
+  def decode(self, ids):
+    """Define in concrete implementation"""
+    raise NotImplementedError
+
+  def save(self, filepath):
+    """Saves the state of tokenizer into file"""
+    model_path = Path(filepath).with_suffix('.model')
+    # save only pairs, they are ordered in modern python
+    model_path.write_text(json.dumps(list(self.merges)))
+
+  def load(self, filepath):
+    """Loads the state of tokenizer from filepath.
+    Intended to use after training and saving,
+    before attempting to encode/decode
+    """
+    model_path = Path(filepath).with_suffix('.model')
+    pairs = json.loads(model_path.read_text())
+    # recreate merges and vocab
+    for idx, pair in enumerate(pairs, start=256):
+      self.merges[tuple(pair)] = idx
+      self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
+# -----------------
+ 
+# Concrete Implementations
+# Most basic BPE Tokenizer 
+
+class BasicTokenizer(Tokenizer):
+  def __init__(self):
+    super().__init__()
 
   def train(self, text, vocab_size, verbose=False):
     """Train bpe tokenizer on string `text`, trained tokenizer
@@ -80,21 +118,3 @@ class BasicTokenizer():
     """Given encoded ids, return string"""
     text = b''.join(self.vocab[i] for i in ids)
     return text.decode('utf-8', errors='replace')
-
-  def save(self, filepath):
-    """Saves the state of tokenizer into file"""
-    model_path = Path(filepath).with_suffix('.model')
-    # save only pairs, they are ordered in modern python
-    model_path.write_text(json.dumps(list(self.merges)))
-
-  def load(self, filepath):
-    """Loads the state of tokenizer from filepath.
-    Intended to use after training and saving,
-    before attempting to encode/decode
-    """
-    model_path = Path(filepath).with_suffix('.model')
-    pairs = json.loads(model_path.read_text())
-    # recreate merges and vocab
-    for idx, pair in enumerate(pairs, start=256):
-      self.merges[tuple(pair)] = idx
-      self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
