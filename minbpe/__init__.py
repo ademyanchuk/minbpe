@@ -1,1 +1,1 @@
-from .basic import BasicTokenizer
+from .basic import BasicTokenizer, RegexTokenizer
