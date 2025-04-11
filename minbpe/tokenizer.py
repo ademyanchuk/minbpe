@@ -117,10 +117,10 @@ class BasicTokenizer():
 class RegexTokenizer(BasicTokenizer):
   def __init__(self):
     super().__init__()
+    self.pattern = re.compile(GPT4_SPLIT_PATTERN) 
   
   def train(self, text, vocab_size, verbose=False):
-    pattern = re.compile(GPT4_SPLIT_PATTERN) 
-    groups = pattern.findall(text)
+    groups = self.pattern.findall(text)
     tokens = [list(g.encode('utf-8')) for g in groups]
     num_iters = vocab_size - 256
     old_len = sum(len(t) for t in tokens)
@@ -144,5 +144,10 @@ class RegexTokenizer(BasicTokenizer):
       print(f'Length of tokens after: {new_len}')
       print(f'Compression ratio: {old_len/new_len:.3}X')
 
-# TODO: AK does split text into regex matched chunks before encoding
-# TODO: same way as in the training, I don't. Explore if both ways are equivalent
+  def encode(self, text):
+    # encode chunks -> return joined
+    chunks = self.pattern.findall(text)
+    tokens = []
+    for chunk in chunks:
+      tokens.extend(super().encode(chunk))
+    return tokens
