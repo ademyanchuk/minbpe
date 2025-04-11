@@ -1,6 +1,6 @@
 """
-Implements basic BPE tokenizer as in
-https://github.com/karpathy/minbpe/blob/master/exercise.md#step-1
+Implements basic and regex BPE tokenizer as in
+https://github.com/karpathy/minbpe/blob/master/exercise.md
 """
 
 import json
@@ -36,55 +36,23 @@ def merge(ids, pair, idx):
       i += 1
   return newids
 
-# Base tokenizer class, defines interface and common functionality
-class Tokenizer():
-  def __init__(self) -> None:
+# ----------------------------------------------------
+ 
+# Most basic BPE Tokenizer 
+class BasicTokenizer():
+  def __init__(self):
+    self._build_clean_state()
+
+  def _build_clean_state(self):
     self.merges = {}
     self.vocab = {i:bytes([i]) for i in range(256)}
-
-  def train(self, text, vocab_size, verbose=False):
-    """Define in concrete implementation"""
-    raise NotImplementedError
-
-  def encode(self, text):
-    """Define in concrete implementation"""
-    raise NotImplementedError
-
-  def decode(self, ids):
-    """Define in concrete implementation"""
-    raise NotImplementedError
-
-  def save(self, filepath):
-    """Saves the state of tokenizer into file"""
-    model_path = Path(filepath).with_suffix('.model')
-    # save only pairs, they are ordered in modern python
-    model_path.write_text(json.dumps(list(self.merges)))
-
-  def load(self, filepath):
-    """Loads the state of tokenizer from filepath.
-    Intended to use after training and saving,
-    before attempting to encode/decode
-    """
-    model_path = Path(filepath).with_suffix('.model')
-    pairs = json.loads(model_path.read_text())
-    # recreate merges and vocab
-    for idx, pair in enumerate(pairs, start=256):
-      self.merges[tuple(pair)] = idx
-      self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
-# -----------------
- 
-# Concrete Implementations
-# Most basic BPE Tokenizer 
-
-class BasicTokenizer(Tokenizer):
-  def __init__(self):
-    super().__init__()
 
   def train(self, text, vocab_size, verbose=False):
     """Train bpe tokenizer on string `text`, trained tokenizer
     will have vocabulary size of `vocab_size`. If verbose,
     print merges and final stats
     """
+    # ensure clean state [e.g. what if we train after we've trained]
     num_iters = vocab_size - 256
     tokens = list(text.encode('utf-8'))
     old_len = len(tokens)
@@ -123,8 +91,29 @@ class BasicTokenizer(Tokenizer):
     text = b''.join(self.vocab[i] for i in ids)
     return text.decode('utf-8', errors='replace')
 
+  def save(self, filepath):
+    """Saves the state of tokenizer into file"""
+    model_path = Path(filepath).with_suffix('.model')
+    # save only pairs, they are ordered in modern python
+    model_path.write_text(json.dumps(list(self.merges)))
+
+  def load(self, filepath):
+    """Loads the state of tokenizer from filepath.
+    Intended to use after training and saving,
+    before attempting to encode/decode
+    """
+    model_path = Path(filepath).with_suffix('.model')
+    pairs = json.loads(model_path.read_text())
+    # let's ensure clean state
+    self._build_clean_state()
+    # recreate merges and vocab
+    for idx, pair in enumerate(pairs, start=256):
+      self.merges[tuple(pair)] = idx
+      self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
+
 # Regex Tokenizer using GPT4 split pattern
 # does not allow token merges across character categories' borders
+# only train is different from basic tokenizer
 class RegexTokenizer(BasicTokenizer):
   def __init__(self):
     super().__init__()
