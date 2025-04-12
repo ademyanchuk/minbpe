@@ -114,7 +114,7 @@ class BasicTokenizer():
 
 # Regex Tokenizer using GPT4 split pattern
 # does not allow token merges across character categories' borders
-# only train is different from basic tokenizer
+# only train and encode is different from basic tokenizer
 class RegexTokenizer(BasicTokenizer):
   def __init__(self):
     super().__init__()
