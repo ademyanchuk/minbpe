@@ -47,10 +47,11 @@ class BasicTokenizer():
     self.merges = {}
     self.vocab = {i:bytes([i]) for i in range(256)}
 
-  def train(self, text, vocab_size, verbose=False):
+  def train(self, text, vocab_size, verbose=False, file=None):
     """Train bpe tokenizer on string `text`, trained tokenizer
     will have vocabulary size of `vocab_size`. If verbose,
-    print merges and final stats
+    print merges and final stats. If verbose and file is not none,
+    will write verbose output to the file
     """
     # ensure clean state [e.g. what if we train after we've trained]
     num_iters = vocab_size - 256
@@ -65,12 +66,12 @@ class BasicTokenizer():
       self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
       if verbose:
         # visualize during training, print bytes
-        print(self.vocab[pair[0]], '+', self.vocab[pair[1]], '->', self.vocab[idx])
+        print(self.vocab[pair[0]], '+', self.vocab[pair[1]], '->', self.vocab[idx], file=file)
     new_len = len(tokens)
     if verbose:
-      print(f'Length of tokens before: {old_len}')
-      print(f'Length of tokens after: {new_len}')
-      print(f'Compression ratio: {old_len/new_len:.3}X')
+      print(f'Length of tokens before: {old_len}', file=file)
+      print(f'Length of tokens after: {new_len}', file=file)
+      print(f'Compression ratio: {old_len/new_len:.3}X', file=file)
 
   def encode(self, text):
     """Given string encode it to tokens"""
@@ -119,7 +120,7 @@ class RegexTokenizer(BasicTokenizer):
     super().__init__()
     self.pattern = re.compile(GPT4_SPLIT_PATTERN) 
   
-  def train(self, text, vocab_size, verbose=False):
+  def train(self, text, vocab_size, verbose=False, file=None):
     groups = self.pattern.findall(text)
     tokens = [list(g.encode('utf-8')) for g in groups]
     num_iters = vocab_size - 256
@@ -136,13 +137,13 @@ class RegexTokenizer(BasicTokenizer):
       self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
       if verbose:
         # visualize during training, print bytes
-        print(self.vocab[pair[0]], '+', self.vocab[pair[1]], '->', self.vocab[idx])
+        print(self.vocab[pair[0]], '+', self.vocab[pair[1]], '->', self.vocab[idx], file=file)
 
     new_len = sum(len(t) for t in tokens)
     if verbose:
-      print(f'Length of tokens before: {old_len}')
-      print(f'Length of tokens after: {new_len}')
-      print(f'Compression ratio: {old_len/new_len:.3}X')
+      print(f'Length of tokens before: {old_len}', file=file)
+      print(f'Length of tokens after: {new_len}', file=file)
+      print(f'Compression ratio: {old_len/new_len:.3}X', file=file)
 
   def encode(self, text):
     # encode chunks -> return joined
